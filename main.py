@@ -1,6 +1,40 @@
 import pygame
 
 
+# class WorkerDownSprite(pygame.sprite.Sprite):
+#     def __init__(self, sheet, columns, rows, x, y):
+#         super().__init__()
+#         self.frames = []
+#         self.cut_sheet(sheet, columns, rows)
+#         self.cur_frame = 0
+#         self.image = self.frames[self.cur_frame]
+#         self.rect = self.rect.move(x, y)
+#
+#     def cut_sheet(self, sheet, columns, rows):
+#         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
+#                                 sheet.get_height() // rows)
+#         for j in range(rows):
+#             for i in range(columns):
+#                 frame_location = (self.rect.w * i, self.rect.h * j)
+#                 self.frames.append(sheet.subsurface(pygame.Rect(
+#                     frame_location, self.rect.size)))
+#
+#     def update(self):
+#         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
+#         self.image = self.frames[self.cur_frame]
+class Worker(pygame.sprite.Sprite):
+    image = pygame.image.load('/Users/Stepan/Downloads/Worker.png/')
+
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = Worker.image.blit(screen, (0, 0), (40, 40))
+
+    
+
+
+# worker = WorkerDownSprite(image, 1, 5, 40, 40)
+
+
 def draw(scr):
     scr.fill((0, 0, 0))
     for y in range(21):
@@ -61,7 +95,7 @@ if __name__ == '__main__':
     clock = pygame.time.Clock()
     draw(screen)
 lvl_map = open('sokoban_levels_pack.txt', 'r')
-for i in range(4):
+for i in range(1):
     lvl = lvl_map.readline()
 for i in range(21):
     for j in range(21):
