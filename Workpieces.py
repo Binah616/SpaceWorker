@@ -49,7 +49,7 @@ def load_image(name, colorkey=None):
         image.set_colorkey(colorkey)
     else:
         image = image.convert_alpha()
-    return image  #.subsurface((0, 0), (40, 40))
+    return image
 
 
 if __name__ == '__main__':

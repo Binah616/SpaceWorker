@@ -1,58 +1,75 @@
 import pygame
+import os
 
 
-# class WorkerDownSprite(pygame.sprite.Sprite):
-#     def __init__(self, sheet, columns, rows, x, y):
-#         super().__init__()
-#         self.frames = []
-#         self.cut_sheet(sheet, columns, rows)
-#         self.cur_frame = 0
-#         self.image = self.frames[self.cur_frame]
-#         self.rect = self.rect.move(x, y)
-#
-#     def cut_sheet(self, sheet, columns, rows):
-#         self.rect = pygame.Rect(0, 0, sheet.get_width() // columns,
-#                                 sheet.get_height() // rows)
-#         for j in range(rows):
-#             for i in range(columns):
-#                 frame_location = (self.rect.w * i, self.rect.h * j)
-#                 self.frames.append(sheet.subsurface(pygame.Rect(
-#                     frame_location, self.rect.size)))
-#
-#     def update(self):
-#         self.cur_frame = (self.cur_frame + 1) % len(self.frames)
-#         self.image = self.frames[self.cur_frame]
 class Worker(pygame.sprite.Sprite):
-    image = pygame.image.load('/Users/Stepan/Downloads/Worker.png/')
-
     def __init__(self):
-        pygame.sprite.Sprite.__init__(self)
-        self.image = Worker.image.blit(screen, (0, 0), (40, 40))
+        super().__init__()
+        self.image = cur_image.subsurface((0, 0), (40, 40))
+        self.rect = self.image.get_rect()
+        self.rect.x = cur_y * 40
+        self.rect.y = cur_x * 40
+        self.image = cur_image.subsurface((0, 0), (40, 40))
 
-    
+    def update(self, direction):
+        dx = 0
+        dy = 0
+        if direction == 0:
+            dy = 1
+        elif direction == 1:
+            dx = 1
+        elif direction == 2:
+            dx = -1
+        elif direction == 3:
+            dy = -1
+        for i in range(1, 41, 1):
+            self.rect.y += dy
+            self.rect.x += dx
+            dir_num = i % 5
+            self.image = cur_image.subsurface((direction * 40, dir_num * 40), (40, 40))
+            draw(screen)
+            all_sprites.draw(screen)
+            pygame.display.flip()
+            pygame.time.wait(80)
+            all_sprites.draw(screen)
 
 
-# worker = WorkerDownSprite(image, 1, 5, 40, 40)
+def load_image(name, colorkey=None):
+    fullname = os.path.join('/Users/Stepan/Desktop', name)
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+    image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image = image.convert()
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    return image
 
 
 def draw(scr):
     scr.fill((0, 0, 0))
+    pygame.draw.rect(scr, (180, 0, 0), ((840, 0), (160, 840)))
     for y in range(21):
         for x in range(21):
             if pos[y][x] == 'W':
                 pygame.draw.rect(scr, (255, 255, 255), ((x * 40, y * 40), (40, 40)), 1)
-            elif pos[y][x] == 'H':
-                pygame.draw.circle(scr, (255, 0, 0), (40 * x + 20, 40 * y + 20), 20, 1)
             elif pos[y][x] == 'B':
-                pygame.draw.circle(scr, (255, 255, 0), (40 * x + 20, 40 * y + 20), 20, 1)
+                pygame.draw.circle(scr, (255, 255, 0), (40 * x + 20, 40 * y + 20), 20, 4)
             elif pos[y][x] == 'L':
-                pygame.draw.circle(scr, (0, 255, 100), (40 * x + 20, 40 * y + 20), 10)
+                pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
             elif pos[y][x] == 'P':
                 pygame.draw.circle(scr, (255, 0, 0), (40 * x + 20, 40 * y + 20), 20, 1)
                 pygame.draw.circle(scr, (0, 255, 100), (40 * x + 20, 40 * y + 20), 10)
             elif pos[y][x] == 'X':
-                pygame.draw.circle(scr, (255, 255, 0), (40 * x + 20, 40 * y + 20), 20, 1)
-                pygame.draw.circle(scr, (0, 255, 100), (40 * x + 20, 40 * y + 20), 10)
+                pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
+                pygame.draw.circle(scr, (255, 255, 0), (40 * x + 20, 40 * y + 20), 20, 4)
+            elif pos[y][x] == ' ':
+                pygame.draw.rect(scr, (0, 0, 0), ((x * 40, y * 40), (40, 40)))
+            elif pos[y][x] == '*':
+                pygame.draw.rect(scr, (0, 0, 150), ((x * 40, y * 40), (40, 40)))
 
 
 states = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124: [' ', 'H', 'L'], 125: [' ', 'H', 'X'],
@@ -86,14 +103,10 @@ pos = [['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', 
        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', ''],
        ['', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '', '']]
 
-
 if __name__ == '__main__':
     pygame.init()
-    size = width, height = 840, 840
+    size = width, height = 1000, 840
     screen = pygame.display.set_mode(size)
-    screen.fill((0, 0, 0))
-    clock = pygame.time.Clock()
-    draw(screen)
 lvl_map = open('sokoban_levels_pack.txt', 'r')
 for i in range(1):
     lvl = lvl_map.readline()
@@ -101,6 +114,19 @@ for i in range(21):
     for j in range(21):
         pos[i][j] = lvl[i * 21 + j]
 side = 21
+for k in range(side ** 2):
+    cur_y = k // side
+    cur_x = k % side
+    if pos[cur_y][cur_x] == 'H' or pos[cur_y][cur_x] == 'P':
+        break
+all_sprites = pygame.sprite.Group()
+cur_image = load_image('Worker.png')
+worker = Worker()
+all_sprites.add(worker)
+clock = pygame.time.Clock()
+draw(screen)
+all_sprites.draw(screen)
+pygame.display.flip()
 fps = 30
 clock = pygame.time.Clock()
 while True:
@@ -137,15 +163,19 @@ while True:
             if event.key == pygame.K_DOWN:
                 next_y += 1
                 after_y += 2
+                worker_state = 0
             if event.key == pygame.K_UP:
                 next_y -= 1
                 after_y -= 2
+                worker_state = 3
             if event.key == pygame.K_LEFT:
                 next_x -= 1
                 after_x -= 2
+                worker_state = 2
             if event.key == pygame.K_RIGHT:
                 next_x += 1
                 after_x += 2
+                worker_state = 1
 
             if pos[next_y][next_x] == 'W':
                 level_state += 10
@@ -170,8 +200,10 @@ while True:
                 level_state += 5
 
             if level_state in states.keys():
+                worker.update(worker_state)
                 pos[cur_y][cur_x], pos[next_y][next_x], pos[after_y][after_x] = states[level_state]
     draw(screen)
+    all_sprites.draw(screen)
     pygame.display.flip()
     clock.tick(fps)
 print('Победа!')
