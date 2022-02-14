@@ -1,5 +1,6 @@
 import pygame
 import os
+
 SIDE = 21
 FPS = 30
 
@@ -7,7 +8,6 @@ FPS = 30
 class Worker(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        # self.image = .subsurface((0, 0), (40, 40))
         self.rect = pygame.Rect(0, 0, 40, 40)
         self.start_pos()
         self.image = cur_image.subsurface((0, 0), (40, 40))
@@ -40,9 +40,7 @@ class Worker(pygame.sprite.Sprite):
             self.rect.x += dx
             dir_num = i % 5
             self.image = self.frames[direction][dir_num]
-            draw(screen)
-            all_sprites.draw(screen)
-            pygame.display.flip()
+            update_all()
             pygame.time.wait(75)
 
 
@@ -63,11 +61,11 @@ def load_image(name, colorkey=None):
 
 def draw(scr):
     scr.fill((0, 0, 0))
-    pygame.draw.rect(scr, (180, 0, 0), ((840, 0), (160, 840)))
+    pygame.draw.rect(scr, (98, 76, 54), ((840, 0), (160, 840)))
     for y in range(21):
         for x in range(21):
             if pos[y][x] == '*':
-                pygame.draw.rect(scr, (0, 0, 150), ((x * 40, y * 40), (40, 40)))
+                pygame.draw.rect(scr, (7*16+8,8*16+6,6*16+11), ((x * 40, y * 40), (40, 40)))
             elif pos[y][x] == 'W':
                 pygame.draw.rect(scr, (255, 255, 255), ((x * 40, y * 40), (40, 40)), 1)
             elif pos[y][x] == 'L':
@@ -83,6 +81,15 @@ def draw(scr):
                 pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
 
 
+def update_all():
+    draw(screen)
+    all_sprites.draw(screen)
+    screen.blit(lvl_text, (850, 20))
+    screen.blit(move_text, (850, 50))
+    pygame.display.flip()
+    clock.tick(FPS)
+
+
 STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124: [' ', 'H', 'L'], 125: [' ', 'H', 'X'],
           132: [' ', 'H', 'B'], 134: [' ', 'H', 'X'],
           141: [' ', 'P', 'W'], 142: [' ', 'P', ' '], 143: [' ', 'P', 'B'], 144: [' ', 'P', 'L'], 145: [' ', 'P', 'X'],
@@ -94,8 +101,10 @@ STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124:
 
 if __name__ == '__main__':
     pygame.init()
+    GAME_FONT = pygame.font.SysFont('Courier', 24)
     size = width, height = 1000, 840
     screen = pygame.display.set_mode(size)
+    pygame.display.set_caption('DockWorker v1.0')
     lvl_map = open('sokoban_levels_pack.txt', 'r')
     for i in range(1):
         lvl = lvl_map.readline()
@@ -103,37 +112,34 @@ if __name__ == '__main__':
     for i in range(21):
         for j in range(21):
             pos[i][j] = lvl[i * 21 + j]
-
-    # for k in range(SIDE ** 2):
-    #     cur_y = k // SIDE
-    #     cur_x = k % SIDE
-    #     if pos[cur_y][cur_x] == 'H' or pos[cur_y][cur_x] == 'P':
-    #         break
-
+    clock = pygame.time.Clock()
     all_sprites = pygame.sprite.Group()
     cur_image = load_image('Worker.png')
+    cur_lvl = 1
+    move_cnt = 0
     worker = Worker()
     worker.start_pos()
     all_sprites.add(worker)
-    clock = pygame.time.Clock()
-    draw(screen)
-    all_sprites.draw(screen)
-    pygame.display.flip()
+    lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
+    move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
+    update_all()
     while True:
         state = ''
         for i in range(SIDE):
             for j in range(SIDE):
                 state += pos[i][j]
         if 'B' not in state:
+            pygame.time.wait(1000)
             lvl = lvl_map.readline()
             for i in range(21):
                 for j in range(21):
                     pos[i][j] = lvl[i * 21 + j]
-            draw(screen)
+            cur_lvl += 1
+            move_cnt = 0
+            lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
+            move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
             worker.start_pos()
-            pygame.display.flip()
-            clock.tick(FPS)
-
+            update_all()
         for event in pygame.event.get():
             for k in range(SIDE ** 2):
                 cur_y = k // SIDE
@@ -191,10 +197,9 @@ if __name__ == '__main__':
                 if level_state in STATES.keys():
                     worker.update(worker_state)
                     pos[cur_y][cur_x], pos[next_y][next_x], pos[after_y][after_x] = STATES[level_state]
+                    move_cnt += 1
+                    move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
             if event.type == pygame.QUIT:
                 pygame.quit()
-        draw(screen)
-        all_sprites.draw(screen)
-        pygame.display.flip()
-        clock.tick(FPS)
+        update_all()
 print('Победа!')
