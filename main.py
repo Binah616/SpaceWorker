@@ -9,8 +9,7 @@ class Worker(pygame.sprite.Sprite):
         super().__init__()
         # self.image = .subsurface((0, 0), (40, 40))
         self.rect = pygame.Rect(0, 0, 40, 40)
-        self.rect.x = cur_x * 40
-        self.rect.y = cur_y * 40
+        self.start_pos()
         self.image = cur_image.subsurface((0, 0), (40, 40))
         self.frames = [[], [], [], []]
         self.cut_sheet(cur_image, 4, 5)
@@ -21,9 +20,9 @@ class Worker(pygame.sprite.Sprite):
             for i in range(rows):
                 self.frames[j].append(sheet.subsurface((j * 40, i * 40), (40, 40)))
 
-    def new_pos(self, y, x):
-        self.rect.x = x * 40
-        self.rect.y = y * 40
+    def start_pos(self):
+        self.rect.x = lvl.index('H') % 21 * 40
+        self.rect.y = lvl.index('H') // 21 * 40
 
     def update(self, direction):
         dx = 0
@@ -101,7 +100,6 @@ if __name__ == '__main__':
     for i in range(1):
         lvl = lvl_map.readline()
     pos = [[' ' for i in range(21)] for j in range(21)]
-
     for i in range(21):
         for j in range(21):
             pos[i][j] = lvl[i * 21 + j]
@@ -115,6 +113,7 @@ if __name__ == '__main__':
     all_sprites = pygame.sprite.Group()
     cur_image = load_image('Worker.png')
     worker = Worker()
+    worker.start_pos()
     all_sprites.add(worker)
     clock = pygame.time.Clock()
     draw(screen)
@@ -130,11 +129,10 @@ if __name__ == '__main__':
             for i in range(21):
                 for j in range(21):
                     pos[i][j] = lvl[i * 21 + j]
-                    if pos[i][j] == 'H' or pos[i][j] == 'P':
-                        worker.new_pos(i, j)
             draw(screen)
+            worker.start_pos()
             pygame.display.flip()
-            # clock.tick(FPS)
+            clock.tick(FPS)
 
         for event in pygame.event.get():
             for k in range(SIDE ** 2):
@@ -150,8 +148,6 @@ if __name__ == '__main__':
                     else:
                         level_state = 200
                     break
-            if event.type == pygame.QUIT:
-                pygame.quit()
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_DOWN:
                     next_y += 1
@@ -195,6 +191,8 @@ if __name__ == '__main__':
                 if level_state in STATES.keys():
                     worker.update(worker_state)
                     pos[cur_y][cur_x], pos[next_y][next_x], pos[after_y][after_x] = STATES[level_state]
+            if event.type == pygame.QUIT:
+                pygame.quit()
         draw(screen)
         all_sprites.draw(screen)
         pygame.display.flip()
