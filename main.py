@@ -10,9 +10,9 @@ class Worker(pygame.sprite.Sprite):
         super().__init__()
         self.rect = pygame.Rect(0, 0, 40, 40)
         self.start_pos()
-        self.image = cur_image.subsurface((0, 0), (40, 40))
+        self.image = worker_img.subsurface((0, 0), (40, 40))
         self.frames = [[], [], [], []]
-        self.cut_sheet(cur_image, 4, 5)
+        self.cut_sheet(worker_img, 4, 5)
         self.image = self.frames[0][0]
 
     def cut_sheet(self, sheet, columns, rows):
@@ -45,9 +45,7 @@ class Worker(pygame.sprite.Sprite):
 
 
 def load_image(name, colorkey=None):
-    fullname = os.path.join('/Users/Stepan/Desktop', name)
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
+    fullname = os.path.join('resources/', name)
     image = pygame.image.load(fullname)
     if colorkey is not None:
         image = image.convert()
@@ -65,18 +63,18 @@ def draw(scr):
     for y in range(21):
         for x in range(21):
             if pos[y][x] == '*':
-                pygame.draw.rect(scr, (7*16+8,8*16+6,6*16+11), ((x * 40, y * 40), (40, 40)))
+                scr.blit(grass_img, (x * 40, y * 40))
             elif pos[y][x] == 'W':
-                pygame.draw.rect(scr, (255, 255, 255), ((x * 40, y * 40), (40, 40)), 1)
+                scr.blit(wall_img, (x * 40, y * 40))
             elif pos[y][x] == 'L':
                 pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
             elif pos[y][x] == ' ':
                 pygame.draw.rect(scr, (0, 0, 0), ((x * 40, y * 40), (40, 40)))
             elif pos[y][x] == 'B':
-                pygame.draw.circle(scr, (255, 255, 0), (40 * x + 20, 40 * y + 20), 20, 4)
+                scr.blit(box_img, (x * 40, y * 40))
             elif pos[y][x] == 'X':
+                scr.blit(box_img, (x * 40, y * 40))
                 pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
-                pygame.draw.circle(scr, (255, 255, 0), (40 * x + 20, 40 * y + 20), 20, 4)
             elif pos[y][x] == 'P':
                 pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
 
@@ -101,7 +99,7 @@ STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124:
 
 if __name__ == '__main__':
     pygame.init()
-    GAME_FONT = pygame.font.SysFont('Courier', 24)
+    GAME_FONT = pygame.font.SysFont('Courier new', 24)
     size = width, height = 1000, 840
     screen = pygame.display.set_mode(size)
     pygame.display.set_caption('DockWorker v1.0')
@@ -114,7 +112,10 @@ if __name__ == '__main__':
             pos[i][j] = lvl[i * 21 + j]
     clock = pygame.time.Clock()
     all_sprites = pygame.sprite.Group()
-    cur_image = load_image('Worker.png')
+    worker_img = load_image('Worker.png')
+    grass_img = load_image('grass_1.png')
+    wall_img = load_image('Wall.png')
+    box_img = load_image('Box.png')
     cur_lvl = 1
     move_cnt = 0
     worker = Worker()

@@ -54,6 +54,7 @@ def load_image(name, colorkey=None):
 
 if __name__ == '__main__':
     pygame.init()
+    pygame.font.init()
     size = width, height = 500, 500
     screen = pygame.display.set_mode(size)
     all_sprites = pygame.sprite.Group()
@@ -79,3 +80,6 @@ if __name__ == '__main__':
                 draw(screen)
                 all_sprites.draw(screen)
                 pygame.display.flip()
+
+
+
