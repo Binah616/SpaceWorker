@@ -3,45 +3,109 @@ import os
 
 SIDE = 21
 FPS = 30
+CAGE = 40
+
+
+class Button:
+    def __init__(self, posit, text):
+        self.x, self.y = posit
+        self.font = GAME_FONT
+        self.text = self.font.render(text, True, (255, 215, 0))
+        self.size = self.text.get_size()
+        self.surface = pygame.Surface(self.size)
+        self.surface.fill((98, 76, 54))
+        self.surface.blit(self.text, (self.x, self.y))
+        self.rect = pygame.Rect(self.x, self.y, self.size[0], self.size[1])
+
+    def click(self):
+        x, y = pygame.mouse.get_pos()
+        if pygame.mouse.get_pressed()[0]:
+            if self.rect.collidepoint(x, y):
+                self.special()
+
+    def show(self):
+        screen.blit(self.surface, (self.x, self.y))
+        screen.blit(self.text, (self.x, self.y))
+
+
+class RestartButton(Button):
+    def __init__(self, posit, text):
+        super().__init__(posit, text)
+
+    def special(self):
+        global lvl_text, move_text, move_cnt
+        move_cnt = 0
+        move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
+        new_lvl()
+        worker.start_pos()
+        update_all(screen, lvl_text, move_text)
 
 
 class Worker(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
-        self.rect = pygame.Rect(0, 0, 40, 40)
-        self.start_pos()
-        self.image = worker_img.subsurface((0, 0), (40, 40))
+        self.rect = pygame.Rect(0, 0, CAGE, CAGE)
+        self.image = worker_img.subsurface((0, 0), (CAGE, CAGE))
         self.frames = [[], [], [], []]
         self.cut_sheet(worker_img, 4, 5)
         self.image = self.frames[0][0]
+        self.start_pos()
 
     def cut_sheet(self, sheet, columns, rows):
         for j in range(columns):
             for i in range(rows):
-                self.frames[j].append(sheet.subsurface((j * 40, i * 40), (40, 40)))
+                self.frames[j].append(sheet.subsurface((j * CAGE, i * CAGE), (CAGE, CAGE)))
 
     def start_pos(self):
-        self.rect.x = lvl.index('H') % 21 * 40
-        self.rect.y = lvl.index('H') // 21 * 40
+        self.rect.x = lvl.index('H') % 21 * CAGE
+        self.rect.y = lvl.index('H') // 21 * CAGE
+        self.image = self.frames[0][0]
 
-    def update(self, direction):
+    def update(self, direction, is_busy):
         dx = 0
         dy = 0
+        bx = self.rect.x
+        by = self.rect.y
         if direction == 0:
             dy = 4
+            by += 40
         elif direction == 1:
             dx = 4
+            bx += 40
         elif direction == 2:
             dx = -4
+            bx -= 40
         elif direction == 3:
             dy = -4
-        for i in range(1, 11):
-            self.rect.y += dy
-            self.rect.x += dx
-            dir_num = i % 5
-            self.image = self.frames[direction][dir_num]
-            update_all()
-            pygame.time.wait(75)
+            by -= 40
+        if not is_busy:
+            for i in range(1, 11):
+                self.rect.y += dy
+                self.rect.x += dx
+                dir_num = i % 5
+                self.image = self.frames[direction][dir_num]
+                surface.blit(self.image, (self.rect.x, self.rect.y))
+                update_all(screen, lvl_text, move_text)
+                pygame.time.wait(75)
+        else:
+            mbx = bx
+            mby = by
+            for i in range(1, 11):
+                self.rect.y += dy
+                self.rect.x += dx
+                mby += dy
+                mbx += dx
+                draw(screen)
+                pygame.draw.rect(surface, (0, 0, 0), ((bx+2 , by+2), (CAGE-4, CAGE-4)))
+                dir_num = i % 5
+                self.image = self.frames[direction][dir_num]
+                surface.blit(self.image, (self.rect.x, self.rect.y))
+                surface.blit(box_img, (mbx, mby))
+                screen.blit(lvl_text, (850, 20))
+                screen.blit(move_text, (850, 50))
+                restart_button.show()
+                pygame.display.flip()
+                pygame.time.wait(100)
 
 
 def load_image(name, colorkey=None):
@@ -59,31 +123,40 @@ def load_image(name, colorkey=None):
 
 def draw(scr):
     scr.fill((0, 0, 0))
+    surface.fill((0, 0, 0))
     pygame.draw.rect(scr, (98, 76, 54), ((840, 0), (160, 840)))
     for y in range(21):
         for x in range(21):
             if pos[y][x] == '*':
-                scr.blit(grass_img, (x * 40, y * 40))
+                scr.blit(grass_img, (x * CAGE, y * CAGE))
             elif pos[y][x] == 'W':
-                scr.blit(wall_img, (x * 40, y * 40))
+                scr.blit(wall_img, (x * CAGE, y * CAGE))
             elif pos[y][x] == 'L':
-                pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
+                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (38, 38)), 1)
             elif pos[y][x] == ' ':
-                pygame.draw.rect(scr, (0, 0, 0), ((x * 40, y * 40), (40, 40)))
+                pygame.draw.rect(scr, (0, 0, 0), ((x * CAGE, y * CAGE), (CAGE, CAGE)))
             elif pos[y][x] == 'B':
-                scr.blit(box_img, (x * 40, y * 40))
+                surface.blit(box_img, (x * CAGE, y * CAGE))
             elif pos[y][x] == 'X':
-                scr.blit(box_img, (x * 40, y * 40))
-                pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
+                surface.blit(box_img, (x * CAGE, y * CAGE))
+                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (38, 38)), 1)
             elif pos[y][x] == 'P':
-                pygame.draw.rect(scr, (0, 255, 100), ((40 * x + 1, 40 * y + 1), (38, 38)), 3)
+                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (38, 38)), 1)
 
 
-def update_all():
-    draw(screen)
-    all_sprites.draw(screen)
-    screen.blit(lvl_text, (850, 20))
-    screen.blit(move_text, (850, 50))
+def new_lvl():
+    for i in range(21):
+        for j in range(21):
+            pos[i][j] = lvl[i * 21 + j]
+
+
+def update_all(scr, l_txt, m_txt):
+    draw(scr)
+    all_sprites.draw(surface)
+    scr.blit(l_txt, (850, 20))
+    scr.blit(m_txt, (850, 50))
+    restart_button.show()
+    surface.blit(surface, size)
     pygame.display.flip()
     clock.tick(FPS)
 
@@ -102,20 +175,20 @@ if __name__ == '__main__':
     GAME_FONT = pygame.font.SysFont('Courier new', 24)
     size = width, height = 1000, 840
     screen = pygame.display.set_mode(size)
+    surface = pygame.display.set_mode(size)
+    surface.set_alpha(255)
     pygame.display.set_caption('DockWorker v1.0')
     lvl_map = open('sokoban_levels_pack.txt', 'r')
-    for i in range(1):
-        lvl = lvl_map.readline()
     pos = [[' ' for i in range(21)] for j in range(21)]
-    for i in range(21):
-        for j in range(21):
-            pos[i][j] = lvl[i * 21 + j]
+    for i in range(2):
+        lvl = lvl_map.readline()
+    new_lvl()
     clock = pygame.time.Clock()
     all_sprites = pygame.sprite.Group()
     worker_img = load_image('Worker.png')
     grass_img = load_image('grass_1.png')
     wall_img = load_image('Wall.png')
-    box_img = load_image('Box.png')
+    box_img = load_image('box_1.png')
     cur_lvl = 1
     move_cnt = 0
     worker = Worker()
@@ -123,24 +196,23 @@ if __name__ == '__main__':
     all_sprites.add(worker)
     lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
     move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
-    update_all()
+    restart_button = RestartButton((870, 80), 'Restart')
+    update_all(screen, lvl_text, move_text)
     while True:
         state = ''
         for i in range(SIDE):
             for j in range(SIDE):
                 state += pos[i][j]
         if 'B' not in state:
-            pygame.time.wait(1000)
+            pygame.time.wait(100)
             lvl = lvl_map.readline()
-            for i in range(21):
-                for j in range(21):
-                    pos[i][j] = lvl[i * 21 + j]
+            new_lvl()
             cur_lvl += 1
             move_cnt = 0
             lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
             move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
             worker.start_pos()
-            update_all()
+            update_all(screen, lvl_text, move_text)
         for event in pygame.event.get():
             for k in range(SIDE ** 2):
                 cur_y = k // SIDE
@@ -196,11 +268,16 @@ if __name__ == '__main__':
                     level_state += 5
 
                 if level_state in STATES.keys():
-                    worker.update(worker_state)
+                    if ((level_state % 100) // 10 == 3) or ((level_state % 100) // 10 == 5):
+                        worker.update(worker_state, True)
+                    else:
+                        worker.update(worker_state, False)
                     pos[cur_y][cur_x], pos[next_y][next_x], pos[after_y][after_x] = STATES[level_state]
                     move_cnt += 1
                     move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                restart_button.click()
             if event.type == pygame.QUIT:
                 pygame.quit()
-        update_all()
+        update_all(screen, lvl_text, move_text)
 print('Победа!')
