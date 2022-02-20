@@ -96,7 +96,7 @@ class Worker(pygame.sprite.Sprite):
                 mby += dy
                 mbx += dx
                 draw(screen)
-                pygame.draw.rect(surface, (0, 0, 0), ((bx+2 , by+2), (CAGE-4, CAGE-4)))
+                pygame.draw.rect(surface, (0, 0, 0), ((bx + 2, by + 2), (CAGE - 4, CAGE - 4)))
                 dir_num = i % 5
                 self.image = self.frames[direction][dir_num]
                 surface.blit(self.image, (self.rect.x, self.rect.y))
@@ -132,16 +132,16 @@ def draw(scr):
             elif pos[y][x] == 'W':
                 scr.blit(wall_img, (x * CAGE, y * CAGE))
             elif pos[y][x] == 'L':
-                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (38, 38)), 1)
+                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (CAGE - 2, CAGE - 2)), 1)
             elif pos[y][x] == ' ':
                 pygame.draw.rect(scr, (0, 0, 0), ((x * CAGE, y * CAGE), (CAGE, CAGE)))
             elif pos[y][x] == 'B':
                 surface.blit(box_img, (x * CAGE, y * CAGE))
             elif pos[y][x] == 'X':
                 surface.blit(box_img, (x * CAGE, y * CAGE))
-                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (38, 38)), 1)
+                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (CAGE - 2, CAGE - 2)), 1)
             elif pos[y][x] == 'P':
-                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (38, 38)), 1)
+                pygame.draw.rect(scr, (0, 255, 100), ((CAGE * x + 1, CAGE * y + 1), (CAGE - 2, CAGE - 2)), 1)
 
 
 def new_lvl():
