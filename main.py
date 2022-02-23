@@ -38,7 +38,7 @@ class RestartButton(Button):
         move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
         new_lvl()
         worker.start_pos()
-        update_all(screen, lvl_text, move_text)
+        update_all(screen)
 
 
 class Worker(pygame.sprite.Sprite):
@@ -85,8 +85,8 @@ class Worker(pygame.sprite.Sprite):
                 dir_num = i % 5
                 self.image = self.frames[direction][dir_num]
                 surface.blit(self.image, (self.rect.x, self.rect.y))
-                update_all(screen, lvl_text, move_text)
-                pygame.time.wait(75)
+                update_all(screen)
+                pygame.time.wait(60)
         else:
             mbx = bx
             mby = by
@@ -105,7 +105,7 @@ class Worker(pygame.sprite.Sprite):
                 screen.blit(move_text, (850, 50))
                 restart_button.show()
                 pygame.display.flip()
-                pygame.time.wait(100)
+                pygame.time.wait(75)
 
 
 def load_image(name, colorkey=None):
@@ -150,11 +150,11 @@ def new_lvl():
             pos[i][j] = lvl[i * 21 + j]
 
 
-def update_all(scr, l_txt, m_txt):
+def update_all(scr):
     draw(scr)
     all_sprites.draw(surface)
-    scr.blit(l_txt, (850, 20))
-    scr.blit(m_txt, (850, 50))
+    scr.blit(lvl_text, (850, 20))
+    scr.blit(move_text, (850, 50))
     restart_button.show()
     surface.blit(surface, size)
     pygame.display.flip()
@@ -172,6 +172,10 @@ STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124:
 
 if __name__ == '__main__':
     pygame.init()
+    pygame.mixer.init()
+    pygame.mixer.music.load('resources/sountrack/Library_of_Ruina_OST_-_Yesod_Battle_1.mp3')
+    pygame.mixer.music.set_volume(0.5)
+    pygame.mixer.music.play(-1)
     GAME_FONT = pygame.font.SysFont('Courier new', 24)
     size = width, height = 1000, 840
     screen = pygame.display.set_mode(size)
@@ -180,7 +184,7 @@ if __name__ == '__main__':
     pygame.display.set_caption('DockWorker v1.0')
     lvl_map = open('sokoban_levels_pack.txt', 'r')
     pos = [[' ' for i in range(21)] for j in range(21)]
-    for i in range(2):
+    for i in range(1):
         lvl = lvl_map.readline()
     new_lvl()
     clock = pygame.time.Clock()
@@ -197,7 +201,7 @@ if __name__ == '__main__':
     lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
     move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
     restart_button = RestartButton((870, 80), 'Restart')
-    update_all(screen, lvl_text, move_text)
+    update_all(screen)
     while True:
         state = ''
         for i in range(SIDE):
@@ -207,12 +211,23 @@ if __name__ == '__main__':
             pygame.time.wait(100)
             lvl = lvl_map.readline()
             new_lvl()
-            cur_lvl += 1
-            move_cnt = 0
-            lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
-            move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
-            worker.start_pos()
-            update_all(screen, lvl_text, move_text)
+            if cur_lvl <= 100:
+                move_cnt = 0
+                cur_lvl += 1
+                lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
+                move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
+                worker.start_pos()
+                update_all(screen)
+            else:
+                GAME_FONT = pygame.font.SysFont('Comic Sans MW', 50)
+                pygame.draw.rect(screen, (0, 0, 0), ((200, 200), (600, 240)))
+                end_text = GAME_FONT.render('Congratulations! You win!', True, (255, 215, 0))
+                screen.blit(end_text, (275, 300))
+                pygame.display.flip()
+                while True:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            pygame.quit()
         for event in pygame.event.get():
             for k in range(SIDE ** 2):
                 cur_y = k // SIDE
@@ -279,5 +294,4 @@ if __name__ == '__main__':
                 restart_button.click()
             if event.type == pygame.QUIT:
                 pygame.quit()
-        update_all(screen, lvl_text, move_text)
-print('Победа!')
+        update_all(screen)
