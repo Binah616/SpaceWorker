@@ -1,5 +1,6 @@
 import pygame
 import os
+import sqlite3
 
 SIDE = 21
 FPS = 30
@@ -109,7 +110,7 @@ class Worker(pygame.sprite.Sprite):
 
 
 def load_image(name, colorkey=None):
-    fullname = os.path.join('resources/', name)
+    fullname = os.path.join('resources/sprites', name)
     image = pygame.image.load(fullname)
     if colorkey is not None:
         image = image.convert()
@@ -161,6 +162,14 @@ def update_all(scr):
     clock.tick(FPS)
 
 
+def load_level(lvl_num):
+    con = sqlite3.connect("resources/sokoban.db3")
+    cur = con.cursor()
+    res = cur.execute(f"""SELECT level_map FROM levels where id = {lvl_num - 1}""")
+    for i in res:
+        return i[0]
+
+
 STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124: [' ', 'H', 'L'], 125: [' ', 'H', 'X'],
           132: [' ', 'H', 'B'], 134: [' ', 'H', 'X'],
           141: [' ', 'P', 'W'], 142: [' ', 'P', ' '], 143: [' ', 'P', 'B'], 144: [' ', 'P', 'L'], 145: [' ', 'P', 'X'],
@@ -182,11 +191,7 @@ if __name__ == '__main__':
     surface = pygame.display.set_mode(size)
     surface.set_alpha(255)
     pygame.display.set_caption('DockWorker v1.0')
-    lvl_map = open('sokoban_levels_pack.txt', 'r')
     pos = [[' ' for i in range(21)] for j in range(21)]
-    for i in range(1):
-        lvl = lvl_map.readline()
-    new_lvl()
     clock = pygame.time.Clock()
     all_sprites = pygame.sprite.Group()
     worker_img = load_image('Worker.png')
@@ -194,6 +199,8 @@ if __name__ == '__main__':
     wall_img = load_image('Wall.png')
     box_img = load_image('box_1.png')
     cur_lvl = 1
+    lvl = load_level(cur_lvl)
+    new_lvl()
     move_cnt = 0
     worker = Worker()
     worker.start_pos()
@@ -209,11 +216,11 @@ if __name__ == '__main__':
                 state += pos[i][j]
         if 'B' not in state:
             pygame.time.wait(100)
-            lvl = lvl_map.readline()
-            new_lvl()
             if cur_lvl <= 100:
                 move_cnt = 0
                 cur_lvl += 1
+                lvl = load_level(cur_lvl)
+                new_lvl()
                 lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
                 move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
                 worker.start_pos()
