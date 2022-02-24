@@ -53,17 +53,20 @@ class LoadButton(Button):
             con = sqlite3.connect("Data/sokoban.db3")
             cur = con.cursor()
             res = cur.execute("""SELECT cur_level FROM players WHERE name = ?""", (name, )).fetchall()
-            lvl = load_level(res[0][0])
-            cur_lvl = res[0][0] + 1
-            cur_name = name
-            lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
-            move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
-            name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
-            move_cnt = 0
-            new_lvl()
-            worker.start_pos()
-            update_all(screen)
-            cur.close()
+            if len(res) != 0:
+                lvl = load_level(res[0][0])
+                cur_lvl = res[0][0]
+                cur_name = name
+                lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
+                move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
+                name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
+                move_cnt = 0
+                new_lvl()
+                worker.start_pos()
+                update_all(screen)
+                cur.close()
+            else:
+                update_all(screen)
         else:
             update_all(screen)
 
@@ -79,10 +82,10 @@ class SaveButton(Button):
             cur = con.cursor()
             res = cur.execute("""SELECT 1 FROM players WHERE name = ?""", (name, )).fetchall()
             print(res)
-            if res[0][0] == 1:
-                cur.execute("""UPDATE players SET cur_level = ? WHERE name = ?""", (cur_lvl - 1, name))
-            else:
+            if len(res) == 0:
                 cur.execute("""INSERT INTO players VALUES(?,?)""", (name, cur_lvl))
+            elif res[0][0] == 1:
+                cur.execute("""UPDATE players SET cur_level = ? WHERE name = ?""", (cur_lvl, name))
             con.commit()
             cur.close()
 
@@ -228,7 +231,6 @@ def name_input():
     font = pygame.font.SysFont('Courier new', 20)
     name_text = font.render('Enter name', True, (255, 215, 0))
     screen.blit(name_text, ((445, 387), (210, 20)))
-    clock = pygame.time.Clock()
     input_box = pygame.Rect(405, 407, 190, 32)
     text = ''
     while True:
