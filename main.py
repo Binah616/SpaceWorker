@@ -42,6 +42,31 @@ class RestartButton(Button):
         update_all(screen)
 
 
+class LoadButton(Button):
+    def __init__(self, posit, text):
+        super().__init__(posit, text)
+
+    def special(self):
+        global lvl, cur_name, move_cnt, cur_lvl, lvl_text, move_text, name_text
+        name = name_input()
+        if name != '':
+            con = sqlite3.connect("Data/sokoban.db3")
+            cur = con.cursor()
+            res = cur.execute("""SELECT cur_level FROM players WHERE name = ?""", (name, )).fetchall()
+            lvl = load_level(res[0][0])
+            cur_lvl = res[0][0]
+            cur_name = name
+            lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
+            move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
+            name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
+            move_cnt = 0
+            new_lvl()
+            worker.start_pos()
+            update_all(screen)
+        else:
+            update_all(screen)
+
+
 class Worker(pygame.sprite.Sprite):
     def __init__(self):
         super().__init__()
@@ -102,15 +127,17 @@ class Worker(pygame.sprite.Sprite):
                 self.image = self.frames[direction][dir_num]
                 surface.blit(self.image, (self.rect.x, self.rect.y))
                 surface.blit(box_img, (mbx, mby))
-                screen.blit(lvl_text, (850, 20))
-                screen.blit(move_text, (850, 50))
+                screen.blit(name_text, (880, 20))
+                screen.blit(lvl_text, (850, 50))
+                screen.blit(move_text, (850, 80))
                 restart_button.show()
+                load_button.show()
                 pygame.display.flip()
                 pygame.time.wait(75)
 
 
 def load_image(name, colorkey=None):
-    fullname = os.path.join('resources/sprites', name)
+    fullname = os.path.join('Data/sprites', name)
     image = pygame.image.load(fullname)
     if colorkey is not None:
         image = image.convert()
@@ -154,20 +181,56 @@ def new_lvl():
 def update_all(scr):
     draw(scr)
     all_sprites.draw(surface)
-    scr.blit(lvl_text, (850, 20))
-    scr.blit(move_text, (850, 50))
+    scr.blit(name_text, (880, 20))
+    scr.blit(lvl_text, (850, 50))
+    scr.blit(move_text, (850, 80))
     restart_button.show()
+    load_button.show()
     surface.blit(surface, size)
     pygame.display.flip()
     clock.tick(FPS)
 
 
 def load_level(lvl_num):
-    con = sqlite3.connect("resources/sokoban.db3")
+    con = sqlite3.connect("Data/sokoban.db3")
     cur = con.cursor()
     res = cur.execute(f"""SELECT level_map FROM levels where id = {lvl_num - 1}""")
     for i in res:
         return i[0]
+
+
+def name_input():
+    pygame.draw.rect(screen, (0, 0, 0), ((395, 387), (210, 66)))
+    pygame.draw.rect(screen, (255, 255, 255), ((395, 387), (210, 66)), 2)
+    font = pygame.font.SysFont('Courier new', 20)
+    name_text = font.render('Enter name', True, (255, 215, 0))
+    screen.blit(name_text, ((445, 387), (210, 20)))
+    clock = pygame.time.Clock()
+    input_box = pygame.Rect(405, 407, 190, 32)
+    text = ''
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                break
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    return text
+                elif event.key == pygame.K_BACKSPACE:
+                    text = text[:-1]
+                elif event.key == pygame.K_ESCAPE:
+                    return ''
+                else:
+                    if len(text) < 15:
+                        text += event.unicode
+        pygame.draw.rect(screen, (0, 0, 0), ((395, 387), (210, 66)))
+        pygame.draw.rect(screen, (255, 255, 255), ((395, 387), (210, 66)), 2)
+        screen.blit(name_text, ((445, 387), (210, 20)))
+        txt_surface = font.render(text, True, (255, 255, 255))
+        screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+        pygame.draw.rect(screen, (0, 100, 255), input_box, 2)
+        pygame.display.flip()
+        clock.tick(30)
 
 
 STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124: [' ', 'H', 'L'], 125: [' ', 'H', 'X'],
@@ -182,7 +245,7 @@ STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124:
 if __name__ == '__main__':
     pygame.init()
     pygame.mixer.init()
-    pygame.mixer.music.load('resources/sountrack/Library_of_Ruina_OST_-_Yesod_Battle_1.mp3')
+    pygame.mixer.music.load('Data/sountrack/Library_of_Ruina_OST_-_Yesod_Battle_1.mp3')
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(-1)
     GAME_FONT = pygame.font.SysFont('Courier new', 24)
@@ -205,9 +268,12 @@ if __name__ == '__main__':
     worker = Worker()
     worker.start_pos()
     all_sprites.add(worker)
+    cur_name = 'NoName'
     lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
     move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
-    restart_button = RestartButton((870, 80), 'Restart')
+    name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
+    restart_button = RestartButton((870, 110), 'Restart')
+    load_button = LoadButton((860, 140), 'Load game')
     update_all(screen)
     while True:
         state = ''
@@ -299,6 +365,7 @@ if __name__ == '__main__':
                     move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
             if event.type == pygame.MOUSEBUTTONDOWN:
                 restart_button.click()
+                load_button.click()
             if event.type == pygame.QUIT:
                 pygame.quit()
         update_all(screen)
