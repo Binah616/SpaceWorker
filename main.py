@@ -47,12 +47,12 @@ class LoadButton(Button):
         super().__init__(posit, text)
 
     def special(self):
-        global lvl, cur_name, move_cnt, cur_lvl, lvl_text, move_text, name_text
+        global lvl, cur_name, move_cnt, cur_lvl, lvl_text, move_text, name_text, scores
         name = name_input()
         if name != '':
             con = sqlite3.connect("Data/sokoban.db3")
             cur = con.cursor()
-            res = cur.execute("""SELECT cur_level FROM players WHERE name = ?""", (name, )).fetchall()
+            res = cur.execute("""SELECT cur_level FROM players WHERE name = ?""", (name,)).fetchall()
             if len(res) != 0:
                 lvl = load_level(res[0][0])
                 cur_lvl = res[0][0]
@@ -63,11 +63,14 @@ class LoadButton(Button):
                 move_cnt = 0
                 new_lvl()
                 worker.start_pos()
+                scores = top_players()
                 update_all(screen)
                 cur.close()
             else:
+                scores = top_players()
                 update_all(screen)
         else:
+            scores = top_players()
             update_all(screen)
 
 
@@ -76,12 +79,12 @@ class SaveButton(Button):
         super().__init__(posit, text)
 
     def special(self):
-        global cur_name, name_text
+        global cur_name, name_text, scores
         name = name_input()
         if name != '':
             con = sqlite3.connect("Data/sokoban.db3")
             cur = con.cursor()
-            res = cur.execute("""SELECT 1 FROM players WHERE name = ?""", (name, )).fetchall()
+            res = cur.execute("""SELECT 1 FROM players WHERE name = ?""", (name,)).fetchall()
             print(res)
             if len(res) == 0:
                 cur.execute("""INSERT INTO players VALUES(?,?)""", (name, cur_lvl))
@@ -91,6 +94,7 @@ class SaveButton(Button):
             cur.close()
             cur_name = name
         name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
+        scores = top_players()
         update_all(screen)
 
 
@@ -157,9 +161,11 @@ class Worker(pygame.sprite.Sprite):
                 screen.blit(name_text, (880, 20))
                 screen.blit(lvl_text, (850, 50))
                 screen.blit(move_text, (850, 80))
+                screen.blit(score_text, (842, 270))
                 restart_button.show()
                 save_button.show()
                 load_button.show()
+                players_draw(scores)
                 pygame.display.flip()
                 pygame.time.wait(75)
 
@@ -181,7 +187,8 @@ def draw(scr):
     scr.fill((0, 0, 0))
     surface.fill((0, 0, 0))
     pygame.draw.rect(scr, (98, 76, 54), ((840, 0), (160, 840)))
-    pygame.draw.line(scr, (255, 215, 0), (840, 104), (1000, 104), 2)
+    pygame.draw.line(scr, (255, 215, 0), (850, 125), (990, 125), 2)
+    pygame.draw.line(scr, (255, 215, 0), (850, 250), (990, 250), 2)
     for y in range(21):
         for x in range(21):
             if pos[y][x] == '*':
@@ -213,9 +220,11 @@ def update_all(scr):
     scr.blit(name_text, (880, 20))
     scr.blit(lvl_text, (850, 50))
     scr.blit(move_text, (850, 80))
+    scr.blit(score_text, (842, 270))
     restart_button.show()
     load_button.show()
     save_button.show()
+    players_draw(scores)
     surface.blit(surface, size)
     pygame.display.flip()
     clock.tick(FPS)
@@ -251,7 +260,7 @@ def name_input():
                 elif event.key == pygame.K_ESCAPE:
                     return ''
                 else:
-                    if len(text) < 15:
+                    if len(text) < 9:
                         text += event.unicode
         pygame.draw.rect(screen, (0, 0, 0), ((395, 387), (210, 66)))
         pygame.draw.rect(screen, (255, 255, 255), ((395, 387), (210, 66)), 2)
@@ -261,6 +270,33 @@ def name_input():
         pygame.draw.rect(screen, (0, 100, 255), input_box, 2)
         pygame.display.flip()
         clock.tick(30)
+
+
+def top_players():
+    con = sqlite3.connect("Data/sokoban.db3")
+    cur = con.cursor()
+    res = cur.execute("""SELECT * FROM players ORDER BY cur_level DESC LIMIT 10""").fetchall()
+    font = pygame.font.SysFont('Courier new', 22)
+    scores = []
+    # x = 842
+    # y = 310
+    for i in res:
+        player = i[0]
+        level = i[1]
+        text = font.render(f'{player:8} {level:3}', True, (255, 215, 0))
+        # screen.blit(text, (x, y))
+        scores.append(text)
+        # y += 30
+    con.close()
+    return scores
+
+
+def players_draw(score):
+    x = 842
+    y = 310
+    for text in score:
+        screen.blit(text, (x, y))
+        y += 30
 
 
 STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124: [' ', 'H', 'L'], 125: [' ', 'H', 'X'],
@@ -302,9 +338,11 @@ if __name__ == '__main__':
     lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
     move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
     name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
-    restart_button = RestartButton((870, 110), 'Restart')
-    load_button = LoadButton((860, 140), 'Load game')
-    save_button = SaveButton((860, 170), 'Save game')
+    score_text = GAME_FONT.render(f'Top players', True, (255, 215, 0))
+    scores = top_players()
+    restart_button = RestartButton((870, 145), 'Restart')
+    load_button = LoadButton((860, 175), 'Load game')
+    save_button = SaveButton((860, 205), 'Save game')
     update_all(screen)
     while True:
         state = ''
