@@ -76,6 +76,7 @@ class SaveButton(Button):
         super().__init__(posit, text)
 
     def special(self):
+        global cur_name, name_text
         name = name_input()
         if name != '':
             con = sqlite3.connect("Data/sokoban.db3")
@@ -88,6 +89,9 @@ class SaveButton(Button):
                 cur.execute("""UPDATE players SET cur_level = ? WHERE name = ?""", (cur_lvl, name))
             con.commit()
             cur.close()
+            cur_name = name
+        name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
+        update_all(screen)
 
 
 class Worker(pygame.sprite.Sprite):
@@ -177,6 +181,7 @@ def draw(scr):
     scr.fill((0, 0, 0))
     surface.fill((0, 0, 0))
     pygame.draw.rect(scr, (98, 76, 54), ((840, 0), (160, 840)))
+    pygame.draw.line(scr, (255, 215, 0), (840, 104), (1000, 104), 2)
     for y in range(21):
         for x in range(21):
             if pos[y][x] == '*':
