@@ -54,7 +54,7 @@ class LoadButton(Button):
             cur = con.cursor()
             res = cur.execute("""SELECT cur_level FROM players WHERE name = ?""", (name, )).fetchall()
             lvl = load_level(res[0][0])
-            cur_lvl = res[0][0]
+            cur_lvl = res[0][0] + 1
             cur_name = name
             lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
             move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
@@ -63,8 +63,28 @@ class LoadButton(Button):
             new_lvl()
             worker.start_pos()
             update_all(screen)
+            cur.close()
         else:
             update_all(screen)
+
+
+class SaveButton(Button):
+    def __init__(self, posit, text):
+        super().__init__(posit, text)
+
+    def special(self):
+        name = name_input()
+        if name != '':
+            con = sqlite3.connect("Data/sokoban.db3")
+            cur = con.cursor()
+            res = cur.execute("""SELECT 1 FROM players WHERE name = ?""", (name, )).fetchall()
+            print(res)
+            if res[0][0] == 1:
+                cur.execute("""UPDATE players SET cur_level = ? WHERE name = ?""", (cur_lvl - 1, name))
+            else:
+                cur.execute("""INSERT INTO players VALUES(?,?)""", (name, cur_lvl))
+            con.commit()
+            cur.close()
 
 
 class Worker(pygame.sprite.Sprite):
@@ -131,6 +151,7 @@ class Worker(pygame.sprite.Sprite):
                 screen.blit(lvl_text, (850, 50))
                 screen.blit(move_text, (850, 80))
                 restart_button.show()
+                save_button.show()
                 load_button.show()
                 pygame.display.flip()
                 pygame.time.wait(75)
@@ -186,6 +207,7 @@ def update_all(scr):
     scr.blit(move_text, (850, 80))
     restart_button.show()
     load_button.show()
+    save_button.show()
     surface.blit(surface, size)
     pygame.display.flip()
     clock.tick(FPS)
@@ -196,6 +218,7 @@ def load_level(lvl_num):
     cur = con.cursor()
     res = cur.execute(f"""SELECT level_map FROM levels where id = {lvl_num - 1}""")
     for i in res:
+        cur.close()
         return i[0]
 
 
@@ -274,6 +297,7 @@ if __name__ == '__main__':
     name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
     restart_button = RestartButton((870, 110), 'Restart')
     load_button = LoadButton((860, 140), 'Load game')
+    save_button = SaveButton((860, 170), 'Save game')
     update_all(screen)
     while True:
         state = ''
@@ -366,6 +390,7 @@ if __name__ == '__main__':
             if event.type == pygame.MOUSEBUTTONDOWN:
                 restart_button.click()
                 load_button.click()
+                save_button.click()
             if event.type == pygame.QUIT:
                 pygame.quit()
         update_all(screen)
