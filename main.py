@@ -50,27 +50,30 @@ class LoadButton(Button):
     def special(self):
         global lvl, cur_name, move_cnt, cur_lvl, lvl_text, move_text, name_text, scores
         name = name_input()
-        pin = pin_input()
-        if name != '' and pin != '':
+        if name != '':
             con = sqlite3.connect("Data/sokoban.db3")
             cur = con.cursor()
             res = cur.execute("""SELECT cur_level FROM players WHERE name = ?""", (name,)).fetchall()
-            check = cur.execute("""SELECT pin FROM players WHERE name = ?""", (name,)).fetchall()
-            if len(res) != 0 and len(check) != 0:
-                if check[0][0] == pin:
-                    lvl = load_level(res[0][0])
-                    cur_lvl = res[0][0]
-                    cur_name = name
-                    lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
-                    move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
-                    name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
-                    move_cnt = 0
-                    new_lvl()
-                    worker.start_pos()
-                    scores = top_players()
-                    success_effect.play()
-                    update_all(screen)
-                    cur.close()
+            if len(res) != 0:
+                pin = pin_input()
+                if pin != '':
+                    check = cur.execute("""SELECT pin FROM players WHERE name = ?""", (name,)).fetchall()
+                    if check[0][0] == pin:
+                        lvl = load_level(res[0][0])
+                        cur_lvl = res[0][0]
+                        cur_name = name
+                        lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
+                        move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
+                        name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
+                        move_cnt = 0
+                        new_lvl()
+                        worker.start_pos()
+                        scores = top_players()
+                        success_effect.play()
+                        update_all(screen)
+                        cur.close()
+                    else:
+                        fail()
                 else:
                     fail()
             else:
@@ -86,22 +89,27 @@ class SaveButton(Button):
     def special(self):
         global cur_name, name_text, scores
         name = name_input()
-        pin = pin_input()
-        if name != '' and pin != '':
-            con = sqlite3.connect("Data/sokoban.db3")
-            cur = con.cursor()
-            res = cur.execute("""SELECT 1 FROM players WHERE name = ?""", (name,)).fetchall()
-            check = cur.execute("""SELECT pin FROM players WHERE name = ?""", (name,)).fetchall()
-            if len(res) == 0:
-                cur.execute("""INSERT INTO players VALUES(?,?,?)""", (name, cur_lvl, pin))
-            elif res[0][0] == 1 and check[0][0] == pin:
-                cur.execute("""UPDATE players SET cur_level = ? WHERE name = ?""", (cur_lvl, name))
+        if name != '':
+            pin = pin_input()
+            if pin != '':
+                con = sqlite3.connect("Data/sokoban.db3")
+                cur = con.cursor()
+                res = cur.execute("""SELECT 1 FROM players WHERE name = ?""", (name,)).fetchall()
+                check = cur.execute("""SELECT pin FROM players WHERE name = ?""", (name,)).fetchall()
+                if len(res) == 0:
+                    cur.execute("""INSERT INTO players VALUES(?,?,?)""", (name, cur_lvl, pin))
+                elif res[0][0] == 1 and check[0][0] == pin:
+                    cur.execute("""UPDATE players SET cur_level = ? WHERE name = ?""", (cur_lvl, name))
+                else:
+                    fail()
+                con.commit()
+                cur.close()
+                cur_name = name
+                success_effect.play()
             else:
-                fail()
-            con.commit()
-            cur.close()
-            cur_name = name
-        success_effect.play()
+                fail_effect.play()
+        else:
+            fail_effect.play()
         name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
         scores = top_players()
         update_all(screen)
@@ -367,7 +375,7 @@ STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124:
           141: [' ', 'P', 'W'], 142: [' ', 'P', ' '], 143: [' ', 'P', 'B'], 144: [' ', 'P', 'L'], 145: [' ', 'P', 'X'],
           152: [' ', 'P', 'B'], 154: [' ', 'P', 'X'],
           221: ['L', 'H', 'W'], 222: ['L', 'H', ' '], 223: ['L', 'H', 'B'], 224: ['L', 'H', 'L'], 225: ['L', 'H', 'X'],
-          232: ['L', 'H', 'B'], 234: ['L', 'H', 'L'],
+          232: ['L', 'H', 'B'], 234: ['L', 'H', 'X'],
           241: ['L', 'P', 'W'], 242: ['L', 'P', ' '], 243: ['L', 'P', 'B'], 244: ['L', 'P', 'L'], 245: ['L', 'P', 'X'],
           252: ['L', 'P', 'B'], 254: ['L', 'P', 'X']}
 
