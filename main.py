@@ -39,6 +39,7 @@ class RestartButton(Button):
         move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
         new_lvl()
         worker.start_pos()
+        change_effect.play()
         update_all(screen)
 
 
@@ -382,7 +383,7 @@ if __name__ == '__main__':
     cur_sound = pygame.mixer.Sound(sounds[0])
     index = 0
     change_effect = pygame.mixer.Sound('Data/sountrack/SFX/Page_Turn.wav')
-    win_sound = pygame.mixer.Sound('Data/sountrack/SFX/Keter 1.wav')
+    win_sound = pygame.mixer.Sound('Data/sountrack/SFX/0_Keter.wav')
     win_effect = pygame.mixer.Sound('Data/sountrack/SFX/Finger_Snapping.wav')
     success_effect = pygame.mixer.Sound('Data/sountrack/SFX/Result_EndWin.wav')
     fail_effect = pygame.mixer.Sound('Data/sountrack/SFX/Parry_Atk.wav')
@@ -442,7 +443,7 @@ if __name__ == '__main__':
                 worker.start_pos()
                 update_all(screen)
             else:
-                pygame.mixer.music.stop()
+                cur_sound.stop()
                 win_effect.play()
                 win_sound.play(-1)
                 GAME_FONT = pygame.font.SysFont('Comic Sans MW', 50)
