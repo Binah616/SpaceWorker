@@ -49,32 +49,33 @@ class LoadButton(Button):
     def special(self):
         global lvl, cur_name, move_cnt, cur_lvl, lvl_text, move_text, name_text, scores
         name = name_input()
-        if name != '':
+        pin = pin_input()
+        if name != '' and pin != '':
             con = sqlite3.connect("Data/sokoban.db3")
             cur = con.cursor()
             res = cur.execute("""SELECT cur_level FROM players WHERE name = ?""", (name,)).fetchall()
-            if len(res) != 0:
-                lvl = load_level(res[0][0])
-                cur_lvl = res[0][0]
-                cur_name = name
-                lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
-                move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
-                name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
-                move_cnt = 0
-                new_lvl()
-                worker.start_pos()
-                scores = top_players()
-                success_effect.play()
-                update_all(screen)
-                cur.close()
+            check = cur.execute("""SELECT pin FROM players WHERE name = ?""", (name,)).fetchall()
+            if len(res) != 0 and len(check) != 0:
+                if check[0][0] == pin:
+                    lvl = load_level(res[0][0])
+                    cur_lvl = res[0][0]
+                    cur_name = name
+                    lvl_text = GAME_FONT.render(f'Level {cur_lvl:4}', True, (255, 215, 0))
+                    move_text = GAME_FONT.render(f'Moves {move_cnt:4}', True, (255, 215, 0))
+                    name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
+                    move_cnt = 0
+                    new_lvl()
+                    worker.start_pos()
+                    scores = top_players()
+                    success_effect.play()
+                    update_all(screen)
+                    cur.close()
+                else:
+                    fail()
             else:
-                fail_effect.play()
-                scores = top_players()
-                update_all(screen)
+                fail()
         else:
-            fail_effect.play()
-            scores = top_players()
-            update_all(screen)
+            fail()
 
 
 class SaveButton(Button):
@@ -84,14 +85,18 @@ class SaveButton(Button):
     def special(self):
         global cur_name, name_text, scores
         name = name_input()
-        if name != '':
+        pin = pin_input()
+        if name != '' and pin != '':
             con = sqlite3.connect("Data/sokoban.db3")
             cur = con.cursor()
             res = cur.execute("""SELECT 1 FROM players WHERE name = ?""", (name,)).fetchall()
+            check = cur.execute("""SELECT pin FROM players WHERE name = ?""", (name,)).fetchall()
             if len(res) == 0:
-                cur.execute("""INSERT INTO players VALUES(?,?)""", (name, cur_lvl))
-            elif res[0][0] == 1:
+                cur.execute("""INSERT INTO players VALUES(?,?,?)""", (name, cur_lvl, pin))
+            elif res[0][0] == 1 and check[0][0] == pin:
                 cur.execute("""UPDATE players SET cur_level = ? WHERE name = ?""", (cur_lvl, name))
+            else:
+                fail()
             con.commit()
             cur.close()
             cur_name = name
@@ -99,6 +104,18 @@ class SaveButton(Button):
         name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
         scores = top_players()
         update_all(screen)
+
+
+class ChangeSoundButton(Button):
+    def __init__(self, posit, text):
+        super().__init__(posit, text)
+
+    def special(self):
+        global sounds, cur_sound, index
+        index = (index + 1) % 9
+        cur_sound.stop()
+        cur_sound = pygame.mixer.Sound(sounds[index])
+        cur_sound.play(-1)
 
 
 class Worker(pygame.sprite.Sprite):
@@ -113,8 +130,8 @@ class Worker(pygame.sprite.Sprite):
 
     def cut_sheet(self, sheet, columns, rows):
         for j in range(columns):
-            for i in range(rows):
-                self.frames[j].append(sheet.subsurface((j * CAGE, i * CAGE), (CAGE, CAGE)))
+            for y in range(rows):
+                self.frames[j].append(sheet.subsurface((j * CAGE, y * CAGE), (CAGE, CAGE)))
 
     def start_pos(self):
         self.rect.x = lvl.index('H') % 21 * CAGE
@@ -139,10 +156,10 @@ class Worker(pygame.sprite.Sprite):
             dy = -4
             by -= 40
         if not is_busy:
-            for i in range(1, 11):
+            for fr in range(1, 11):
                 self.rect.y += dy
                 self.rect.x += dx
-                dir_num = i % 5
+                dir_num = fr % 5
                 self.image = self.frames[direction][dir_num]
                 surface.blit(self.image, (self.rect.x, self.rect.y))
                 update_all(screen)
@@ -150,14 +167,14 @@ class Worker(pygame.sprite.Sprite):
         else:
             mbx = bx
             mby = by
-            for i in range(1, 11):
+            for fr in range(1, 11):
                 self.rect.y += dy
                 self.rect.x += dx
                 mby += dy
                 mbx += dx
                 draw(screen)
                 pygame.draw.rect(surface, (0, 0, 0), ((bx + 2, by + 2), (CAGE - 4, CAGE - 4)))
-                dir_num = i % 5
+                dir_num = fr % 5
                 self.image = self.frames[direction][dir_num]
                 surface.blit(self.image, (self.rect.x, self.rect.y))
                 surface.blit(box_img, (mbx, mby))
@@ -168,6 +185,7 @@ class Worker(pygame.sprite.Sprite):
                 restart_button.show()
                 save_button.show()
                 load_button.show()
+                change_button.show()
                 players_draw(scores)
                 pygame.display.flip()
                 pygame.time.wait(75)
@@ -192,6 +210,7 @@ def draw(scr):
     pygame.draw.rect(scr, (98, 76, 54), ((840, 0), (160, 840)))
     pygame.draw.line(scr, (255, 215, 0), (850, 125), (990, 125), 2)
     pygame.draw.line(scr, (255, 215, 0), (850, 250), (990, 250), 2)
+    pygame.draw.line(scr, (255, 215, 0), (850, 620), (990, 620), 2)
     for y in range(21):
         for x in range(21):
             if pos[y][x] == '*':
@@ -212,9 +231,9 @@ def draw(scr):
 
 
 def new_lvl():
-    for i in range(21):
+    for x in range(21):
         for j in range(21):
-            pos[i][j] = lvl[i * 21 + j]
+            pos[x][j] = lvl[x * 21 + j]
 
 
 def update_all(scr):
@@ -227,6 +246,7 @@ def update_all(scr):
     restart_button.show()
     load_button.show()
     save_button.show()
+    change_button.show()
     players_draw(scores)
     surface.blit(surface, size)
     pygame.display.flip()
@@ -237,42 +257,85 @@ def load_level(lvl_num):
     con = sqlite3.connect("Data/sokoban.db3")
     cur = con.cursor()
     res = cur.execute(f"""SELECT level_map FROM levels where id = {lvl_num - 1}""")
-    for i in res:
+    for el in res:
         cur.close()
-        return i[0]
+        return el[0]
 
 
 def name_input():
     pygame.draw.rect(screen, (0, 0, 0), ((395, 387), (210, 66)))
     pygame.draw.rect(screen, (255, 255, 255), ((395, 387), (210, 66)), 2)
     font = pygame.font.SysFont('Courier new', 20)
-    name_text = font.render('Enter name', True, (255, 215, 0))
-    screen.blit(name_text, ((445, 387), (210, 20)))
+    name_txt = font.render('Enter name', True, (255, 215, 0))
+    screen.blit(name_txt, ((445, 387), (210, 20)))
     input_box = pygame.Rect(405, 407, 190, 32)
     text = ''
     while True:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
                 pygame.quit()
                 break
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_RETURN:
+            if ev.type == pygame.KEYDOWN:
+                if ev.key == pygame.K_RETURN:
                     return text
-                elif event.key == pygame.K_BACKSPACE:
+                elif ev.key == pygame.K_BACKSPACE:
                     text = text[:-1]
-                elif event.key == pygame.K_ESCAPE:
+                elif ev.key == pygame.K_ESCAPE:
                     return ''
                 else:
                     if len(text) < 9:
-                        text += event.unicode
+                        text += ev.unicode
         pygame.draw.rect(screen, (0, 0, 0), ((395, 387), (210, 66)))
         pygame.draw.rect(screen, (255, 255, 255), ((395, 387), (210, 66)), 2)
-        screen.blit(name_text, ((445, 387), (210, 20)))
+        screen.blit(name_txt, ((445, 387), (210, 20)))
         txt_surface = font.render(text, True, (255, 255, 255))
         screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
         pygame.draw.rect(screen, (0, 100, 255), input_box, 2)
         pygame.display.flip()
         clock.tick(30)
+
+
+def pin_input():
+    pygame.draw.rect(screen, (0, 0, 0), ((395, 387), (210, 66)))
+    pygame.draw.rect(screen, (255, 255, 255), ((395, 387), (210, 66)), 2)
+    font = pygame.font.SysFont('Courier new', 20)
+    pass_text = font.render('Enter pin', True, (255, 215, 0))
+    screen.blit(name_text, ((450, 387), (210, 20)))
+    input_box = pygame.Rect(405, 407, 190, 32)
+    password = ''
+    while True:
+        for ev in pygame.event.get():
+            if ev.type == pygame.QUIT:
+                pygame.quit()
+                break
+            if ev.type == pygame.KEYDOWN:
+                if ev.key == pygame.K_RETURN:
+                    if password.isdigit():
+                        return int(password)
+                    else:
+                        return ''
+                elif ev.key == pygame.K_BACKSPACE:
+                    password = password[:-1]
+                elif ev.key == pygame.K_ESCAPE:
+                    return ''
+                else:
+                    if len(password) < 4:
+                        password += ev.unicode
+        pygame.draw.rect(screen, (0, 0, 0), ((395, 387), (210, 66)))
+        pygame.draw.rect(screen, (255, 255, 255), ((395, 387), (210, 66)), 2)
+        screen.blit(pass_text, ((445, 387), (210, 20)))
+        txt_surface = font.render(password, True, (255, 255, 255))
+        screen.blit(txt_surface, (input_box.x + 5, input_box.y + 5))
+        pygame.draw.rect(screen, (0, 100, 255), input_box, 2)
+        pygame.display.flip()
+        clock.tick(30)
+
+
+def fail():
+    global scores
+    fail_effect.play()
+    scores = top_players()
+    update_all(screen)
 
 
 def top_players():
@@ -281,9 +344,9 @@ def top_players():
     res = cur.execute("""SELECT * FROM players ORDER BY cur_level DESC LIMIT 10""").fetchall()
     font = pygame.font.SysFont('Courier new', 22)
     score = []
-    for i in res:
-        player = i[0]
-        level = i[1]
+    for el in res:
+        player = el[0]
+        level = el[1]
         text = font.render(f'{player:8} {level:3}', True, (255, 215, 0))
         score.append(text)
     con.close()
@@ -310,19 +373,26 @@ STATES = {121: [' ', 'H', 'W'], 122: [' ', 'H', ' '], 123: [' ', 'H', 'B'], 124:
 if __name__ == '__main__':
     pygame.init()
     pygame.mixer.init()
-    pygame.mixer.music.load('Data/sountrack/Library_of_Ruina_OST_-_Yesod_Battle_1.mp3')
-    change_effect = pygame.mixer.Sound('Data/sountrack/Page_Turn.wav')
-    win_sound = pygame.mixer.Sound('Data/sountrack/Keter 1.wav')
-    win_effect = pygame.mixer.Sound('Data/sountrack/Finger_Snapping.wav')
-    success_effect = pygame.mixer.Sound('Data/sountrack/Result_EndWin.wav')
-    fail_effect = pygame.mixer.Sound('Data/sountrack/Parry_Atk.wav')
+    sounds = []
+    path = 'Data/sountrack/sound/'
+    for i in os.listdir(path):
+        if '.wav' in i:
+            sounds.append(os.path.join(path, i))
+    sounds.sort()
+    cur_sound = pygame.mixer.Sound(sounds[0])
+    index = 0
+    change_effect = pygame.mixer.Sound('Data/sountrack/SFX/Page_Turn.wav')
+    win_sound = pygame.mixer.Sound('Data/sountrack/SFX/Keter 1.wav')
+    win_effect = pygame.mixer.Sound('Data/sountrack/SFX/Finger_Snapping.wav')
+    success_effect = pygame.mixer.Sound('Data/sountrack/SFX/Result_EndWin.wav')
+    fail_effect = pygame.mixer.Sound('Data/sountrack/SFX/Parry_Atk.wav')
     change_effect.set_volume(1.6)
     success_effect.set_volume(1.6)
     fail_effect.set_volume(1.7)
     win_effect.set_volume(1.8)
     win_sound.set_volume(0.9)
-    pygame.mixer.music.set_volume(0.5)
-    pygame.mixer.music.play(-1)
+    cur_sound.set_volume(0.5)
+    cur_sound.play(-1)
     GAME_FONT = pygame.font.SysFont('Courier new', 24)
     size = width, height = 1000, 840
     screen = pygame.display.set_mode(size)
@@ -352,6 +422,7 @@ if __name__ == '__main__':
     restart_button = RestartButton((870, 145), 'Restart')
     load_button = LoadButton((860, 175), 'Load game')
     save_button = SaveButton((860, 205), 'Save game')
+    change_button = ChangeSoundButton((850, 640), 'Turn sound')
     update_all(screen)
     while True:
         state = ''
@@ -414,7 +485,6 @@ if __name__ == '__main__':
                     next_x += 1
                     after_x += 2
                     worker_state = 1
-
                 if pos[next_y][next_x] == 'W':
                     level_state += 10
                 elif pos[next_y][next_x] == ' ':
@@ -449,6 +519,7 @@ if __name__ == '__main__':
                 restart_button.click()
                 load_button.click()
                 save_button.click()
+                change_button.click()
             if event.type == pygame.QUIT:
                 pygame.quit()
         update_all(screen)
