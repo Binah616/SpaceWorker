@@ -399,7 +399,7 @@ if __name__ == '__main__':
     screen = pygame.display.set_mode(size)
     surface = pygame.display.set_mode(size)
     surface.set_alpha(255)
-    pygame.display.set_caption('DockWorker v1.0')
+    pygame.display.set_caption('Space Worker v1.0')
     pos = [[' ' for i in range(21)] for j in range(21)]
     clock = pygame.time.Clock()
     all_sprites = pygame.sprite.Group()
