@@ -64,12 +64,15 @@ class LoadButton(Button):
                 new_lvl()
                 worker.start_pos()
                 scores = top_players()
+                success_effect.play()
                 update_all(screen)
                 cur.close()
             else:
+                fail_effect.play()
                 scores = top_players()
                 update_all(screen)
         else:
+            fail_effect.play()
             scores = top_players()
             update_all(screen)
 
@@ -85,7 +88,6 @@ class SaveButton(Button):
             con = sqlite3.connect("Data/sokoban.db3")
             cur = con.cursor()
             res = cur.execute("""SELECT 1 FROM players WHERE name = ?""", (name,)).fetchall()
-            print(res)
             if len(res) == 0:
                 cur.execute("""INSERT INTO players VALUES(?,?)""", (name, cur_lvl))
             elif res[0][0] == 1:
@@ -93,6 +95,7 @@ class SaveButton(Button):
             con.commit()
             cur.close()
             cur_name = name
+        success_effect.play()
         name_text = GAME_FONT.render(f'{cur_name}', True, (255, 215, 0))
         scores = top_players()
         update_all(screen)
@@ -158,7 +161,7 @@ class Worker(pygame.sprite.Sprite):
                 self.image = self.frames[direction][dir_num]
                 surface.blit(self.image, (self.rect.x, self.rect.y))
                 surface.blit(box_img, (mbx, mby))
-                screen.blit(name_text, (880, 20))
+                screen.blit(name_text, ((160 - len(cur_name) * 13) // 2 + 840, 20))
                 screen.blit(lvl_text, (850, 50))
                 screen.blit(move_text, (850, 80))
                 screen.blit(score_text, (842, 270))
@@ -217,7 +220,7 @@ def new_lvl():
 def update_all(scr):
     draw(scr)
     all_sprites.draw(surface)
-    scr.blit(name_text, (880, 20))
+    scr.blit(name_text, ((160 - len(cur_name) * 13) // 2 + 840, 20))
     scr.blit(lvl_text, (850, 50))
     scr.blit(move_text, (850, 80))
     scr.blit(score_text, (842, 270))
@@ -277,18 +280,14 @@ def top_players():
     cur = con.cursor()
     res = cur.execute("""SELECT * FROM players ORDER BY cur_level DESC LIMIT 10""").fetchall()
     font = pygame.font.SysFont('Courier new', 22)
-    scores = []
-    # x = 842
-    # y = 310
+    score = []
     for i in res:
         player = i[0]
         level = i[1]
         text = font.render(f'{player:8} {level:3}', True, (255, 215, 0))
-        # screen.blit(text, (x, y))
-        scores.append(text)
-        # y += 30
+        score.append(text)
     con.close()
-    return scores
+    return score
 
 
 def players_draw(score):
@@ -312,6 +311,16 @@ if __name__ == '__main__':
     pygame.init()
     pygame.mixer.init()
     pygame.mixer.music.load('Data/sountrack/Library_of_Ruina_OST_-_Yesod_Battle_1.mp3')
+    change_effect = pygame.mixer.Sound('Data/sountrack/Page_Turn.wav')
+    win_sound = pygame.mixer.Sound('Data/sountrack/Keter 1.wav')
+    win_effect = pygame.mixer.Sound('Data/sountrack/Finger_Snapping.wav')
+    success_effect = pygame.mixer.Sound('Data/sountrack/Result_EndWin.wav')
+    fail_effect = pygame.mixer.Sound('Data/sountrack/Parry_Atk.wav')
+    change_effect.set_volume(1.6)
+    success_effect.set_volume(1.6)
+    fail_effect.set_volume(1.7)
+    win_effect.set_volume(1.8)
+    win_sound.set_volume(0.9)
     pygame.mixer.music.set_volume(0.5)
     pygame.mixer.music.play(-1)
     GAME_FONT = pygame.font.SysFont('Courier new', 24)
@@ -352,6 +361,7 @@ if __name__ == '__main__':
         if 'B' not in state:
             pygame.time.wait(100)
             if cur_lvl <= 100:
+                change_effect.play()
                 move_cnt = 0
                 cur_lvl += 1
                 lvl = load_level(cur_lvl)
@@ -361,6 +371,9 @@ if __name__ == '__main__':
                 worker.start_pos()
                 update_all(screen)
             else:
+                pygame.mixer.music.stop()
+                win_effect.play()
+                win_sound.play(-1)
                 GAME_FONT = pygame.font.SysFont('Comic Sans MW', 50)
                 pygame.draw.rect(screen, (0, 0, 0), ((200, 200), (600, 240)))
                 end_text = GAME_FONT.render('Congratulations! You win!', True, (255, 215, 0))
